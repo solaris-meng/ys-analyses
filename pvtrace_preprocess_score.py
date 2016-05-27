@@ -4,6 +4,7 @@ import json
 import logging
 import jieba
 import os
+import datetime
 
 from pyspark import SparkContext
 
@@ -28,15 +29,14 @@ skip_score = -1
 ####################
 
 
-def score_trace(file_dir, file_name):
+def score_trace(trace_file):
 
-    trace_file = file_base + "/" + file_name
     sc = SparkContext("local", "Simple App")
     trace_data = sc.textFile(trace_file)
 
     score_data = trace_data.map(lambda line: line.split("\t")).map(trace_line_score)
     
-    output_file_url = file_dir + '/' + file_name + '-scores'
+    output_file_url = trace_file + '-scores'
     output_file = open(output_file_url, 'w')
 
     sd = score_data.collect()
@@ -146,9 +146,25 @@ def tag_score_combine(line):
 
 
 if __name__ == '__main__':
+    logger.info('DAILY_PAGE_SCORE, started')
+    
+    all_material_api_url = 'http://101.200.130.178:7001/tags/api/getallpage'
+    r = requests.get(all_material_api_url)
+    if r.status_code != 200:
+        logger.info('Get request, all material url failed, status code - %d' % r.status_code)
+    else:
+        result = r.json()
+        if result['result'] != 'success':
+            logger.info('/tags/api.getallpage, result - %s, info - %s' % (result['result'], result['info']))
+        else:
+            urls = result['urls']
+            this_date = datetime.date.today()
+            yesterday = this_date - datetime.timedelta(days=1)
+            date_str = yesterday.isoformat()
 
-    print("score_trace, started")
-    file_dir = '/root/zhaoxq/analyze_file'
-    file_name = 'gaode-lp2-2016-5-11'
-    score_file_url = score_trace(file_dir, file_name)
-    tag_file_url = score_tag(score_file_url)
+            file_dir = '/root/zhaoxq/analyze_file'
+            for each in urls:
+                trace_file_url = file_dir + '/' + each['router'] + '-' + each['page'] + '-' + date_str
+                score_file_url = score_trace(trace_file_url)
+                tags_file_url = score_tag(score_file_url)
+    logger.info('DAILY_PAGE_SCORE, finished')
