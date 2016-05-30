@@ -5,9 +5,12 @@ import logging
 import jieba
 import os
 import datetime
+import sys
 
 from pyspark import SparkContext
 
+reload(sys)
+sys.setdefaultencoding('utf-8')
 logger = logging.getLogger('ms')
 
 file_base = '/root/zhaoxq/analyze_file'
@@ -161,10 +164,12 @@ if __name__ == '__main__':
             this_date = datetime.date.today()
             yesterday = this_date - datetime.timedelta(days=1)
             date_str = yesterday.isoformat()
+            date_str = "2016-05-29"
 
             file_dir = '/root/zhaoxq/analyze_file'
             for each in urls:
                 trace_file_url = file_dir + '/' + each['router'] + '-' + each['page'] + '-' + date_str
+                print(trace_file_url)
                 score_file_url = score_trace(trace_file_url)
                 tags_file_url = score_tag(score_file_url)
     logger.info('DAILY_PAGE_SCORE, finished')
